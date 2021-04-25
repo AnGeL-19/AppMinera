@@ -11,11 +11,22 @@ import polyline from '@mapbox/polyline';
 mapboxgl.accessToken =
   "pk.eyJ1Ijoia2xlcml0aCIsImEiOiJja2dzOHdteDkwM2tnMndxMWhycnY3Ymh3In0.Zis8hP6HuwcywtgUhfeZoQ";
 
-let seleccionar = false;
 let llegada = !false;
+let admin = false;
+let ponerCarro = false;
+let ponerSona = false;
 
-export function seleccionarCosa(selec) {
-  seleccionar = selec;
+export function activarAdministrador(activar) {
+  admin = activar;
+  console.log("admin", activar);
+}
+
+export function seleccionarCarro(selec) {
+  ponerCarro = selec;
+}
+
+export function seleccionarSona(selec) {
+  ponerSona = selec;
 }
 
 export function activarEntrega() {
@@ -47,7 +58,7 @@ export const useMapbox = (puntoInicial) => {
   var clearances = {
     type: "FeatureCollection",
     features: [
-      // Se pueden poner mas obstaculos
+      
     ],
   };
 
@@ -55,7 +66,7 @@ export const useMapbox = (puntoInicial) => {
 
   // función para agregar sona
   const agregarSona = useCallback((ev, sonaa) => {
-    if (seleccionar) {
+    if (ponerSona) {
       let sona = {};
       if (sonaa) {
         clearances.features.push(sonaa);
@@ -113,6 +124,9 @@ export const useMapbox = (puntoInicial) => {
         nuevaSona.current.next(sona);
         addSourceYLayer(mapa);
       }
+
+      ponerSona = false;
+
     }
   }, []);
 
@@ -120,6 +134,7 @@ export const useMapbox = (puntoInicial) => {
   function agregarLayers(sonas) {
     
     console.log(clearances.features);
+
 
     mapa.current.on("load", () => {
       clearances.features = sonas;
@@ -178,7 +193,8 @@ export const useMapbox = (puntoInicial) => {
 
   // función para agregar marcadores
   const agregarMarcador = useCallback((ev, id) => {
-    if (!seleccionar) {
+    if (ponerCarro) {
+
       const { lng, lat } = ev.lngLat || ev;
 
       const marker = new mapboxgl.Marker();
@@ -190,19 +206,25 @@ export const useMapbox = (puntoInicial) => {
       marcadores.current[marker.id] = marker;
 
       if (!id) {
-        nuevoMarcador.current.next({
+        nuevoMarcador.current.next(
+        {
           id: marker.id,
           lng,
           lat,
-        });
+        }
+        );
       }
 
       // escuchar movimientos del marcador
       marker.on("drag", ({ target }) => {
         const { id } = target;
         const { lng, lat } = target.getLngLat();
+        console.log(id, "------->>>");
         movimientoMarcador.current.next({ id, lng, lat });
       });
+
+      ponerCarro = false;
+
     }
   }, []);
 
@@ -219,18 +241,22 @@ export const useMapbox = (puntoInicial) => {
       zoom: puntoInicial.zoom,
     });
 
-    var nav = new mapboxgl.NavigationControl();
+  
 
-      directions = new MapboxDirections({
-      accessToken: mapboxgl.accessToken,
-      unit: "metric",
-      profile: "mapbox/driving",
-      alternatives: "false",
-      geometries: "geojson",
-    });
+    if(!admin){
+        var nav = new mapboxgl.NavigationControl();
 
-    map.scrollZoom.enable();
-    map.addControl(directions, "top-left");
+        directions = new MapboxDirections({
+        accessToken: mapboxgl.accessToken,
+        unit: "metric",
+        profile: "mapbox/driving",
+        alternatives: "false",
+        geometries: "geojson",
+      });
+
+      map.scrollZoom.enable();
+      map.addControl(directions, "top-left");
+    }    
 
     mapa.current = map;
   }, [puntoInicial]);
@@ -272,47 +298,51 @@ export const useMapbox = (puntoInicial) => {
         
 
         //Update the data for the route, updating the visual.
-        mapa.current?.getSource("route" + e.id).setData(routeLine);
-    
-        var detail = "";
-        var collision = "";
-        var emoji = "";
-        var clear = turf.booleanDisjoint(obstacle, routeLine);
-    
-        if (clear == true) {
-          collision = "is good!";
-          detail = "does not go";
-          emoji = "✔️";
-          report.className = "item";
-          mapa.current?.setPaintProperty("route" + e.id, "line-color", "#74c476");
-        } else {
-          collision = "is bad.";
-          detail = "goes";
-          emoji = "⚠️";
-          report.className = "item warning";
-          mapa.current?.setPaintProperty("route" + e.id, "line-color", "#de2d26");
+        if(!(mapa.current?.getSource("route" + e.id)==null)){
+
+          mapa.current?.getSource("route" + e.id).setData(routeLine);
+
+          var detail = "";
+          var collision = "";
+          var emoji = "";
+          var clear = turf.booleanDisjoint(obstacle, routeLine);
+      
+          if (clear == true) {
+            collision = "is good!";
+            detail = "does not go";
+            emoji = "✔️";
+            report.className = "item";
+            mapa.current?.setPaintProperty("route" + e.id, "line-color", "#74c476");
+          } else {
+            collision = "is bad.";
+            detail = "goes";
+            emoji = "⚠️";
+            report.className = "item warning";
+            mapa.current?.setPaintProperty("route" + e.id, "line-color", "#de2d26");
+          }
+      
+          //Add a new report section to the sidebar.
+          // Assign a unique `id` to the report.
+          report.id = "report-" + e.id;
+      
+          // Add the response to the individual report created above.
+          var heading = report.appendChild(document.createElement("h3"));
+      
+          // Set the class type based on clear value.
+          if (clear == true) {
+            heading.className = "title";
+          } else {
+            heading.className = "warning";
+          }
+      
+          heading.innerHTML = emoji + " Route " + (e.id + 1) + " " + collision;
+      
+          // Add details to the individual report.
+          var details = report.appendChild(document.createElement("div"));
+          details.innerHTML = "This route " + detail + " through an avoidance area.";
+          report.appendChild(document.createElement("hr"));
         }
-    
-        //Add a new report section to the sidebar.
-        // Assign a unique `id` to the report.
-        report.id = "report-" + e.id;
-    
-        // Add the response to the individual report created above.
-        var heading = report.appendChild(document.createElement("h3"));
-    
-        // Set the class type based on clear value.
-        if (clear == true) {
-          heading.className = "title";
-        } else {
-          heading.className = "warning";
-        }
-    
-        heading.innerHTML = emoji + " Route " + (e.id + 1) + " " + collision;
-    
-        // Add details to the individual report.
-        var details = report.appendChild(document.createElement("div"));
-        details.innerHTML = "This route " + detail + " through an avoidance area.";
-        report.appendChild(document.createElement("hr"));
+       
       });
     });
 
@@ -332,11 +362,13 @@ export const useMapbox = (puntoInicial) => {
 
   // Agregar marcadores cuando hago click
   useEffect(() => {
-    mapa.current?.on("click", agregarMarcador);
+      mapa.current?.on("click", agregarMarcador);
+      
   }, [agregarMarcador]);
 
   useEffect(() => {
-    mapa.current?.on("click", agregarSona);
+      mapa.current?.on("click", agregarSona);
+
   }, [agregarSona]);
 
   return {

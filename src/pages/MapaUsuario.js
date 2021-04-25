@@ -1,7 +1,6 @@
 import React, { useContext, useEffect } from "react";
-
 import { SocketContext } from "../context/SocketContext";
-import { useMapbox, seleccionarCarro , activarAdministrador, seleccionarSona } from "../hooks/useMapbox";
+import { useMapbox, seleccionarSona, activarEntrega, seleccionarCarro } from "../hooks/useMapbox";
 
 const puntoInicial = {
   lng: -109.02089,
@@ -9,15 +8,7 @@ const puntoInicial = {
   zoom: 15,
 };
 
-
-export const MapaPage = () => {
-
-  useEffect(() => {
-
-    activarAdministrador(true);
-    
-  },[activarAdministrador]);
-
+export const MapaUsuario = () => {
   const {
     agregarSona,
     agregarLayers,
@@ -31,8 +22,6 @@ export const MapaPage = () => {
   } = useMapbox(puntoInicial);
   const { socket } = useContext(SocketContext);
 
-
-
   //Agregar nueva sona
   useEffect(() => {
     nuevaSona$.subscribe((sona) => {
@@ -43,18 +32,18 @@ export const MapaPage = () => {
   useEffect(
     (ev) => {
       socket.on("sona-nueva", (sona) => {
-        seleccionarSona(true);
+        seleccionarCarro(true);
         agregarSona(ev, sona);
-        seleccionarSona(false);
+        seleccionarCarro(false);
       });
     },
-    [socket, agregarSona, seleccionarSona]
+    [socket, agregarSona, seleccionarCarro]
   );
 
   useEffect(
     (ev) => {
       socket.on("sonas-activas", (sonas) => {
-        if((sonas.lenght === 0 || sonas === null || !sonas)){
+        if(!(sonas.lenght === 0 || sonas === null || !sonas)){
           console.log(sonas , "desde sonas activas");
           agregarLayers(sonas);
         }
@@ -101,16 +90,14 @@ export const MapaPage = () => {
     });
   }, [socket, agregarMarcador]);
 
-  function addSona(e) {
-    seleccionarSona(true);
-    console.log("Agregar sona");
+
+  const addEntrega = () => {
+    console.log("marcar entrega");
   }
 
-  function addCarro(e) {
-    seleccionarCarro(true);
-    console.log("Agregar carro");
+  const addCarga = () => {
+    console.log("Cargado");
   }
-
 
 
   return (
@@ -120,19 +107,28 @@ export const MapaPage = () => {
         Lng: {coords.lng} | lat: {coords.lat} | zoom: {coords.zoom}
       </div>
 
-      <div ref={setRef} style={{left:'0%', width:'100%'}} id="id" />
+      <div ref={setRef} id="id" />
+      <div className="sidebar">
+        <div className="heading">
+          <h1>Routes</h1>
+        </div>
+        <div id="reports" className="reports"></div>
+      </div>
 
-      <button className="btn bt-1" onClick={addSona}>
-        Poner sona
-      </button>
-      <button className="btn btn-2" onClick={addCarro}>
-        Poner carro
-      </button>
 
+      <button className="btn btn-3" 
+              onClick={addEntrega}
+              disabled={activarEntrega()}>
+        Entrega
+      </button>
+      <button className="btn btn-2" 
+              onClick={addCarga}>
+        Carga
+      </button>
 
       <div className="formulario">
-        <span className="encabezado">Vehiculo Nuevo</span>
-        <form >
+        <span className="encabezado">Cargar vehiculo</span>
+        <form>
           <label>
             Material:
             <input type="text" name="name" />
@@ -142,7 +138,7 @@ export const MapaPage = () => {
             <input type="text" name="name" />
           </label>
           
-          <button >Guardar</button>
+          <button>Guardar</button>
         </form>
       </div>
 

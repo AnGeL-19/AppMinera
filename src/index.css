@@ -53,6 +53,7 @@
   bottom: 62%;
 }
 
+
 body {
     color: #404040;
     font: 400 15px/22px 'Source Sans Pro', 'Helvetica Neue', Sans-serif;
@@ -157,4 +158,44 @@ body {
   ::-webkit-scrollbar-thumb {
     background: #00853e;
     border-radius: 0;
+  }
+
+  .formulario:hover{
+    width: 420px;
+  }
+
+  .formulario{
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 0;
+    height: 430px;
+    background-color: #101010;
+    z-index: 9999;
+    opacity: .7;
+    border-radius: 15px 0px 0px 15px;
+    transition: 1s;
+  }
+
+  .encabezado{
+
+    color: #f8f8f8;
+    position: relative;
+    display: inline-block;
+    height: 60px;
+    width: 90px;
+    right: 75px;
+    background-color: #101010;
+    padding: 10px;
+    border-radius: 10px 0px 0px 10px;
+    transition: .5s;
+
+  }
+
+  .encabezado:hover{
+    color: #b6b6b6;   
+  }
+
+  label{
+    display: block;
   }
