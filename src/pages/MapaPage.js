@@ -1,7 +1,11 @@
-import React, { useContext, useEffect } from "react";
+import React, { useContext, useEffect, useState } from "react";
 
 import { SocketContext } from "../context/SocketContext";
-import { useMapbox, seleccionarCarro , activarAdministrador, seleccionarSona } from "../hooks/useMapbox";
+import { useMapbox, 
+         seleccionarCarro, 
+         seleccionarSona,
+         seleccionarUsuario,
+         informacionCarro } from "../hooks/useMapbox";
 
 const puntoInicial = {
   lng: -109.02089,
@@ -9,14 +13,14 @@ const puntoInicial = {
   zoom: 15,
 };
 
-
-export const MapaPage = () => {
+export const MapaPage =  () => {
 
   useEffect(() => {
 
-    activarAdministrador(true);
-    
-  },[activarAdministrador]);
+    seleccionarUsuario(true);
+
+  },[seleccionarUsuario]);
+
 
   const {
     agregarSona,
@@ -41,36 +45,36 @@ export const MapaPage = () => {
   }, [nuevaSona$, socket]);
 
   useEffect(
-    (ev) => {
-      socket.on("sona-nueva", (sona) => {
-        seleccionarSona(true);
+     (ev) => {
+      socket.on("sona-nueva", async (sona) => {
+        await seleccionarSona(true);
         agregarSona(ev, sona);
-        seleccionarSona(false);
       });
     },
     [socket, agregarSona, seleccionarSona]
   );
 
   useEffect(
-    (ev) => {
+    () => {
       socket.on("sonas-activas", (sonas) => {
-        if((sonas.lenght === 0 || sonas === null || !sonas)){
+        if(!(sonas.lenght === 0 || sonas === null || !sonas)){
           console.log(sonas , "desde sonas activas");
           agregarLayers(sonas);
         }
       });
     },
-    [agregarSona,socket,agregarLayers]
+    [socket,agregarLayers]
   );
 
   // Escuchar los marcadores existentes
-  useEffect(() => {
-    socket.on("marcadores-activos", (marcadores) => {
-      for (const key of Object.keys(marcadores)) {
-        agregarMarcador(marcadores[key], key);
+  useEffect( () => {
+    socket.on("marcadores-activos", async (marcadores) => {
+      for (const marcador of marcadores) {
+        await seleccionarCarro(true); 
+        agregarMarcador(marcador, marcador.id);
       }
     });
-  }, [socket, agregarMarcador]);
+  }, [socket, agregarMarcador, seleccionarCarro]);
 
   // Nuevo marcador
   useEffect(() => {
@@ -96,22 +100,42 @@ export const MapaPage = () => {
 
   // Escuchar nuevos marcadores
   useEffect(() => {
-    socket.on("marcador-nuevo", (marcador) => {
+    socket.on("marcador-nuevo",async (marcador) => {
+      await seleccionarCarro(true);
       agregarMarcador(marcador, marcador.id);
     });
-  }, [socket, agregarMarcador]);
+  }, [socket, agregarMarcador, seleccionarCarro]);
 
-  function addSona(e) {
+  const addSona = () => {
     seleccionarSona(true);
     console.log("Agregar sona");
   }
 
-  function addCarro(e) {
+  const addCarro = () => {
     seleccionarCarro(true);
     console.log("Agregar carro");
   }
 
+  const [datos, setDatos] = useState({
 
+    conductor: '',
+    tipoCarro: ''
+
+  });
+
+
+  const handleChange = (e) => {
+    setDatos({
+      ...datos,
+      [e.target.name] : e.target.value
+    })
+  }
+
+  const guardarCarro = (e) => {
+    e.preventDefault();
+    informacionCarro(datos);
+    console.log("conductor ",datos.conductor," carro ",datos.tipoCarro);
+  }
 
   return (
     <>
@@ -120,7 +144,7 @@ export const MapaPage = () => {
         Lng: {coords.lng} | lat: {coords.lat} | zoom: {coords.zoom}
       </div>
 
-      <div ref={setRef} style={{left:'0%', width:'100%'}} id="id" />
+      <div ref={setRef} id="id" />
 
       <button className="btn bt-1" onClick={addSona}>
         Poner sona
@@ -129,21 +153,21 @@ export const MapaPage = () => {
         Poner carro
       </button>
 
-
       <div className="formulario">
-        <span className="encabezado">Vehiculo Nuevo</span>
-        <form >
-          <label>
-            Material:
-            <input type="text" name="name" />
-          </label>
-          <label>
-            Cantidad:
-            <input type="text" name="name" />
-          </label>
-          
-          <button >Guardar</button>
+
+        <form onSubmit={guardarCarro}>
+
+          <input placeholder="Conductor" 
+                 name="conductor"  
+                 onChange={handleChange} />
+          <input placeholder="Tipo carro" 
+                 name="tipoCarro"  
+                 onChange={handleChange} />
+
+          <button>Guardar</button>
+
         </form>
+        
       </div>
 
     </>

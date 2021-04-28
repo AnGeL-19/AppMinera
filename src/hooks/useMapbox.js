@@ -7,30 +7,36 @@ import MapboxDirections from '@mapbox/mapbox-gl-directions/dist/mapbox-gl-direct
 import '@mapbox/mapbox-gl-directions/dist/mapbox-gl-directions.css'
 import 'mapbox-gl/dist/mapbox-gl.css'
 import polyline from '@mapbox/polyline';
+import { activarEntrega } from "../pages/MapaUsuario";
+
 
 mapboxgl.accessToken =
   "pk.eyJ1Ijoia2xlcml0aCIsImEiOiJja2dzOHdteDkwM2tnMndxMWhycnY3Ymh3In0.Zis8hP6HuwcywtgUhfeZoQ";
 
-let llegada = !false;
-let admin = false;
-let ponerCarro = false;
-let ponerSona = false;
+//let seleccionar = false;
+let bloqueado = true;
+let selecCarro = false;
+let selecSona = false; 
+let selectUsuario = false;
+let infoCarro = {};
 
-export function activarAdministrador(activar) {
-  admin = activar;
-  console.log("admin", activar);
+export const seleccionarUsuario = (selec) => {
+  selectUsuario = selec;
+  console.log("Usuario",selec);
+};
+
+export const seleccionarCarro = (select) => {
+  selecCarro = select;
 }
 
-export function seleccionarCarro(selec) {
-  ponerCarro = selec;
+export const seleccionarSona = (select) => {
+  selecSona = select;
 }
 
-export function seleccionarSona(selec) {
-  ponerSona = selec;
-}
 
-export function activarEntrega() {
-  return llegada;
+export const informacionCarro = (info) => {
+  infoCarro = info;
+  console.log(info);
 }
 
 export const useMapbox = (puntoInicial) => {
@@ -45,6 +51,7 @@ export const useMapbox = (puntoInicial) => {
 
   let obstacle = null;
   let directions = null;
+  let idCarro = "";
 
   // Observables de Rxjs
   const movimientoMarcador = useRef(new Subject());
@@ -55,10 +62,12 @@ export const useMapbox = (puntoInicial) => {
   const mapa = useRef();
   const [coords, setCoords] = useState(puntoInicial);
 
-  var clearances = {
+  let carros = [];
+
+  let clearances = {
     type: "FeatureCollection",
     features: [
-      
+      // Se pueden poner mas obstaculos
     ],
   };
 
@@ -66,7 +75,7 @@ export const useMapbox = (puntoInicial) => {
 
   // función para agregar sona
   const agregarSona = useCallback((ev, sonaa) => {
-    if (ponerSona) {
+    if (selecSona) {
       let sona = {};
       if (sonaa) {
         clearances.features.push(sonaa);
@@ -124,9 +133,7 @@ export const useMapbox = (puntoInicial) => {
         nuevaSona.current.next(sona);
         addSourceYLayer(mapa);
       }
-
-      ponerSona = false;
-
+      selecSona = false;
     }
   }, []);
 
@@ -134,7 +141,6 @@ export const useMapbox = (puntoInicial) => {
   function agregarLayers(sonas) {
     
     console.log(clearances.features);
-
 
     mapa.current.on("load", () => {
       clearances.features = sonas;
@@ -193,8 +199,7 @@ export const useMapbox = (puntoInicial) => {
 
   // función para agregar marcadores
   const agregarMarcador = useCallback((ev, id) => {
-    if (ponerCarro) {
-
+    if (selecCarro) {
       const { lng, lat } = ev.lngLat || ev;
 
       const marker = new mapboxgl.Marker();
@@ -206,28 +211,34 @@ export const useMapbox = (puntoInicial) => {
       marcadores.current[marker.id] = marker;
 
       if (!id) {
-        nuevoMarcador.current.next(
-        {
+        let infoMarcador = {
           id: marker.id,
+          conductor: infoCarro.conductor,
+          tipoCarro: infoCarro.tipoCarro,
           lng,
           lat,
-        }
-        );
+        };
+        nuevoMarcador.current.next(infoMarcador);
+        carros.unshift(infoMarcador);
+        console.log(carros,"------->><<");
+      }else{
+        carros.unshift(ev);
+        console.log(carros,"------->><<");
       }
 
       // escuchar movimientos del marcador
       marker.on("drag", ({ target }) => {
         const { id } = target;
         const { lng, lat } = target.getLngLat();
-        console.log(id, "------->>>");
+        console.log(lng.toFixed(4), lat.toFixed(5));
+        idCarro = id;
         movimientoMarcador.current.next({ id, lng, lat });
       });
-
-      ponerCarro = false;
-
+      selecCarro = false;
     }
   }, []);
 
+  
   // Funcion para actualizar la ubicación del marcador
   const actualizarPosicion = useCallback(({ id, lng, lat }) => {
     marcadores.current[id].setLngLat([lng, lat]);
@@ -241,9 +252,7 @@ export const useMapbox = (puntoInicial) => {
       zoom: puntoInicial.zoom,
     });
 
-  
-
-    if(!admin){
+    if(!selectUsuario){
         var nav = new mapboxgl.NavigationControl();
 
         directions = new MapboxDirections({
@@ -256,17 +265,17 @@ export const useMapbox = (puntoInicial) => {
 
       map.scrollZoom.enable();
       map.addControl(directions, "top-left");
-    }    
-
+    }
+    
     mapa.current = map;
   }, [puntoInicial]);
 
   useEffect(() => {
 
     directions?.on("route", (e) => {
-      var reports = document.getElementById("reports");
+      let reports = document.getElementById("reports");
       reports.innerHTML = "";
-      var report = reports.appendChild(document.createElement("div"));
+      let report = reports.appendChild(document.createElement("div"));
       let routes = e.route;
     
       //Hide all routes by setting the opacity to zero.
@@ -292,16 +301,19 @@ export const useMapbox = (puntoInicial) => {
             console.log(routeLine.coordinates[0],"--",routeLine.coordinates[1]);
             if(routeLine.coordinates[0][0]===routeLine.coordinates[1][0]){
               console.log("ya llego");
-              llegada = !true;
+              console.log("carro:",idCarro );
+              activarEntrega(false, idCarro);
             }
+            
         }
         
 
         //Update the data for the route, updating the visual.
         if(!(mapa.current?.getSource("route" + e.id)==null)){
 
+      
           mapa.current?.getSource("route" + e.id).setData(routeLine);
-
+      
           var detail = "";
           var collision = "";
           var emoji = "";
@@ -341,9 +353,10 @@ export const useMapbox = (puntoInicial) => {
           var details = report.appendChild(document.createElement("div"));
           details.innerHTML = "This route " + detail + " through an avoidance area.";
           report.appendChild(document.createElement("hr"));
-        }
-       
+
+       }
       });
+    
     });
 
   });
@@ -362,13 +375,11 @@ export const useMapbox = (puntoInicial) => {
 
   // Agregar marcadores cuando hago click
   useEffect(() => {
-      mapa.current?.on("click", agregarMarcador);
-      
+    mapa.current?.on("click", agregarMarcador);
   }, [agregarMarcador]);
 
   useEffect(() => {
-      mapa.current?.on("click", agregarSona);
-
+    mapa.current?.on("click", agregarSona);
   }, [agregarSona]);
 
   return {

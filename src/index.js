@@ -7,14 +7,13 @@ import {
 } from "react-router-dom";
 
 import { MapasApp } from './MapasApp';
-import { MapasUsuarios } from './MapasUsuarios';
-
+import {MapasUsuarios} from './MapasUsuarios';
 
 class App extends Component{
   render(){
     return (
       <>
-      
+
       <Router>
 
           <Route exact path="/" component={MapasApp} />
@@ -22,7 +21,7 @@ class App extends Component{
 
       </Router>
       </>
-      
+
     );
   }
 }
