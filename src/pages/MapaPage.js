@@ -5,7 +5,7 @@ import { useMapbox,
          seleccionarCarro, 
          seleccionarSona,
          seleccionarUsuario,
-         informacionCarro } from "../hooks/useMapbox";
+         informacionCarro} from "../hooks/useMapbox";
 
 const puntoInicial = {
   lng: -109.02089,
@@ -13,7 +13,11 @@ const puntoInicial = {
   zoom: 15,
 };
 
+
+let descripcion = "";
+
 export const MapaPage =  () => {
+
 
   useEffect(() => {
 
@@ -32,6 +36,7 @@ export const MapaPage =  () => {
     movimientoMarcador$,
     agregarMarcador,
     actualizarPosicion,
+    sonaInfo$
   } = useMapbox(puntoInicial);
   const { socket } = useContext(SocketContext);
 
@@ -106,9 +111,24 @@ export const MapaPage =  () => {
     });
   }, [socket, agregarMarcador, seleccionarCarro]);
 
+  useEffect(() => {
+    sonaInfo$.subscribe((sona)=>{
+      let objSona = {
+        idSona: sona.id,
+        descripcion: descripcion,
+        cordenadas: sona.cordenadas,
+        fecha: datosSona.fecha
+      }
+      console.log(objSona, datosSona.descripcion);
+      socket.emit("info-sona", objSona);
+    })
+  }, [sonaInfo$]);
+
   const addSona = () => {
     seleccionarSona(true);
     console.log("Agregar sona");
+    console.log(datosSona.descripcion,datosSona.fecha);
+    
   }
 
   const addCarro = () => {
@@ -117,16 +137,25 @@ export const MapaPage =  () => {
   }
 
   const [datos, setDatos] = useState({
-
     conductor: '',
     tipoCarro: ''
-
+  });
+  
+  const [datosSona, setDatosSona] = useState({
+    descripcion: '',
+    fecha: new Date
   });
 
-
-  const handleChange = (e) => {
+  const handleChangeCarro = (e) => {
     setDatos({
       ...datos,
+      [e.target.name] : e.target.value
+    })
+  }
+
+  const handleChangeSona = (e) => {
+    setDatosSona({
+      ...datosSona,
       [e.target.name] : e.target.value
     })
   }
@@ -136,6 +165,16 @@ export const MapaPage =  () => {
     informacionCarro(datos);
     console.log("conductor ",datos.conductor," carro ",datos.tipoCarro);
   }
+
+  const guardarSona = (e) => {
+    e.preventDefault();
+    descripcion = datosSona.descripcion;
+    console.log("descripcion",datosSona.descripcion,
+                "fecha",datosSona.fecha);
+  };
+
+
+
 
   return (
     <>
@@ -154,20 +193,34 @@ export const MapaPage =  () => {
       </button>
 
       <div className="formulario">
-
+        <span>Vehiculo</span>
         <form onSubmit={guardarCarro}>
 
           <input placeholder="Conductor" 
                  name="conductor"  
-                 onChange={handleChange} />
+                 onChange={handleChangeCarro} />
           <input placeholder="Tipo carro" 
                  name="tipoCarro"  
-                 onChange={handleChange} />
+                 onChange={handleChangeCarro} />
 
           <button>Guardar</button>
 
         </form>
         
+      </div>
+
+      <div className="formulario form-2">
+        <span>Sona</span>
+        <form onSubmit={guardarSona}>
+          
+          <input placeholder="Descripcion" 
+                name="descripcion"  
+                onChange={handleChangeSona} />
+
+          <button>Guardar</button>
+
+        </form>
+
       </div>
 
     </>

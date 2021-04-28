@@ -13,16 +13,14 @@ import { activarEntrega } from "../pages/MapaUsuario";
 mapboxgl.accessToken =
   "pk.eyJ1Ijoia2xlcml0aCIsImEiOiJja2dzOHdteDkwM2tnMndxMWhycnY3Ymh3In0.Zis8hP6HuwcywtgUhfeZoQ";
 
-//let seleccionar = false;
-let bloqueado = true;
 let selecCarro = false;
 let selecSona = false; 
 let selectUsuario = false;
 let infoCarro = {};
 
+
 export const seleccionarUsuario = (selec) => {
   selectUsuario = selec;
-  console.log("Usuario",selec);
 };
 
 export const seleccionarCarro = (select) => {
@@ -36,8 +34,8 @@ export const seleccionarSona = (select) => {
 
 export const informacionCarro = (info) => {
   infoCarro = info;
-  console.log(info);
 }
+
 
 export const useMapbox = (puntoInicial) => {
   // Referencia al DIV del mapa
@@ -57,6 +55,7 @@ export const useMapbox = (puntoInicial) => {
   const movimientoMarcador = useRef(new Subject());
   const nuevoMarcador = useRef(new Subject());
   const nuevaSona = useRef(new Subject());
+  const sonaInfo = useRef(new Subject());
 
   // Mapa y coords
   const mapa = useRef();
@@ -84,6 +83,7 @@ export const useMapbox = (puntoInicial) => {
         console.log(lng, lat);
 
         sona = {
+          id: v4(),
           type: "Feature",
           geometry: {
             type: "Point",
@@ -94,6 +94,12 @@ export const useMapbox = (puntoInicial) => {
           },
         };
 
+        let objSona = {
+          id: sona.id,
+          cordenadas: [lng, lat]
+        };
+        sonaInfo.current.next(objSona);
+        console.log("OBJSONA",objSona);
         clearances.features.push(sona);
       }
 
@@ -230,7 +236,7 @@ export const useMapbox = (puntoInicial) => {
       marker.on("drag", ({ target }) => {
         const { id } = target;
         const { lng, lat } = target.getLngLat();
-        console.log(lng.toFixed(4), lat.toFixed(5));
+        //console.log(lng.toFixed(4), lat.toFixed(5));
         idCarro = id;
         movimientoMarcador.current.next({ id, lng, lat });
       });
@@ -390,6 +396,7 @@ export const useMapbox = (puntoInicial) => {
     nuevoMarcador$: nuevoMarcador.current,
     movimientoMarcador$: movimientoMarcador.current,
     setRef,
+    sonaInfo$: sonaInfo.current,
     agregarSona,
     nuevaSona$: nuevaSona.current,
     agregarLayers
