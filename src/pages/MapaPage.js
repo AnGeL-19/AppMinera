@@ -7,6 +7,9 @@ import { useMapbox,
          seleccionarUsuario,
          informacionCarro} from "../hooks/useMapbox";
 
+import {agregarZona,mostrarZonas} from "../peticiones/peticionZona";
+
+
 const puntoInicial = {
   lng: -109.02089,
   lat: 27.16125,
@@ -113,27 +116,42 @@ export const MapaPage =  () => {
 
   useEffect(() => {
     sonaInfo$.subscribe((sona)=>{
-      let objSona = {
-        idSona: sona.id,
-        descripcion: descripcion,
-        cordenadas: sona.cordenadas,
-        fecha: datosSona.fecha
+      let objZona = {
+        id: sona.id,
+        description: descripcion,
+        coords: sona.cordenadas,
+        date: datosSona.fecha
       }
-      console.log(objSona, datosSona.descripcion);
-      socket.emit("info-sona", objSona);
+      console.log(objZona, datosSona.descripcion);
+      agregarZona(objZona);
+      //socket.emit("info-sona", objSona);
     })
-  }, [sonaInfo$]);
+  }, [sonaInfo$,agregarZona]);
 
   const addSona = () => {
-    seleccionarSona(true);
-    console.log("Agregar sona");
+    if(datosSona.descripcion.trim()==""||
+       datosSona.descripcion.trim().length==0){
+       console.log("Falta informacion");
+    }else
+     seleccionarSona(true);{
+      console.log("Agregar sona");
+    }  
+    
+    
     console.log(datosSona.descripcion,datosSona.fecha);
     
   }
 
   const addCarro = () => {
-    seleccionarCarro(true);
-    console.log("Agregar carro");
+
+    if(datos.conductor.trim().length==0||
+    datos.tipoCarro.trim()==0){
+      console.log("Falta informacion");
+    }else{
+      seleccionarCarro(true);
+      console.log("Agregar carro");
+    }
+
   }
 
   const [datos, setDatos] = useState({
@@ -186,7 +204,7 @@ export const MapaPage =  () => {
       <div ref={setRef} id="id" />
 
       <button className="btn bt-1" onClick={addSona}>
-        Poner sona
+        Poner Zona
       </button>
       <button className="btn btn-2" onClick={addCarro}>
         Poner carro
@@ -210,7 +228,7 @@ export const MapaPage =  () => {
       </div>
 
       <div className="formulario form-2">
-        <span>Sona</span>
+        <span>Zona</span>
         <form onSubmit={guardarSona}>
           
           <input placeholder="Descripcion" 
