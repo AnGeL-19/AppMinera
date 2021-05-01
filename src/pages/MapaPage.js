@@ -65,7 +65,7 @@ export const MapaPage =  () => {
   useEffect(
     () => {
       socket.on("sonas-activas", (sonas) => {
-        if(!(sonas.lenght === 0 || sonas === null || !sonas)){
+        if(!(sonas.length == 0 || sonas == null || !sonas)){
           console.log(sonas , "desde sonas activas");
           agregarLayers(sonas);
         }
@@ -77,10 +77,17 @@ export const MapaPage =  () => {
   // Escuchar los marcadores existentes
   useEffect( () => {
     socket.on("marcadores-activos", async (marcadores) => {
-      for (const marcador of marcadores) {
-        await seleccionarCarro(true); 
-        agregarMarcador(marcador, marcador.id);
+      if(!(marcadores==[] || marcadores == null || marcadores.length == 0)){
+
+        for (const marcador of marcadores) {
+          await seleccionarCarro(true); 
+          agregarMarcador(marcador, marcador.id);
+        }
+        console.log("si hay", marcadores);
+      
       }
+       
+      
     });
   }, [socket, agregarMarcador, seleccionarCarro]);
 
@@ -123,7 +130,7 @@ export const MapaPage =  () => {
         date: datosSona.fecha
       }
       console.log(objZona, datosSona.descripcion);
-      agregarZona(objZona);
+     // agregarZona(objZona);
       //socket.emit("info-sona", objSona);
     })
   }, [sonaInfo$,agregarZona]);
